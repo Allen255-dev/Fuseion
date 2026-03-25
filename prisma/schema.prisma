@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model User {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @unique @map("user_id")
+  tier        String?   @default("free")
+  name        String?
+  email       String?   @unique
+  picture     String?
+  credits     Int?      @default(0)
+  preferences Json?     @default("{}")
+  createdAt   DateTime? @default(now()) @map("created_at")
+  updatedAt   DateTime? @updatedAt @map("updated_at")
+  threads     Thread[]
+  messages    Message[]
+
+  @@map("users")
+}
+
+model Thread {
+  id         String    @id @default(uuid()) @db.Uuid
+  externalId String    @unique @map("external_id")
+  title      String?
+  model      String?
+  status     String?
+  pinned     Boolean?  @default(false)
+  userId     String?   @map("user_id")
+  createdAt  DateTime? @default(now()) @map("created_at")
+  updatedAt  DateTime? @updatedAt @map("updated_at")
+  user       User?     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  messages   Message[]
+  streams    Stream[]
+
+  @@map("threads")
+}
+
+model Message {
+  id         String    @id @default(uuid()) @db.Uuid
+  externalId String    @unique @map("external_id")
+  role       String
+  parts      Json?
+  metadata   Json?
+  threadId   String?   @map("thread_id")
+  userId     String?   @map("user_id")
+  createdAt  DateTime? @default(now()) @map("created_at")
+  updatedAt  DateTime? @updatedAt @map("updated_at")
+  thread     Thread?   @relation(fields: [threadId], references: [externalId], onDelete: Cascade)
+  user       User?     @relation(fields: [userId], references: [userId], onDelete: SetNull)
+
+  @@map("messages")
+}
+
+model Stream {
+  id         String    @id @default(uuid()) @db.Uuid
+  externalId String    @unique @map("external_id")
+  threadId   String?   @map("thread_id")
+  createdAt  DateTime? @default(now()) @map("created_at")
+  updatedAt  DateTime? @updatedAt @map("updated_at")
+  thread     Thread?   @relation(fields: [threadId], references: [externalId], onDelete: Cascade)
+
+  @@map("streams")
+}

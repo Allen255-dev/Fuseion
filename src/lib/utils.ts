@@ -1,0 +1,128 @@
+import { cache } from "react";
+import { formatISO } from "date-fns";
+import { models } from "~/lib/ai/models";
+import { twMerge } from "tailwind-merge";
+import { type BundledLanguage } from "shiki";
+import { clsx, type ClassValue } from "clsx";
+import { ChatMessage, MessagePart } from "~/types";
+import { ChatSDKError, ErrorCode } from "./errors";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export function generateUUID(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+export function convertToUIMessages(
+  messages: any[],
+): ChatMessage[] {
+  return messages.map((message) => ({
+    id: message.id || message.external_id,
+    role: message.role as "user" | "assistant" | "system",
+    parts: Array.isArray(message.parts) ? message.parts : (JSON.parse(message.parts || "[]") as MessagePart[]),
+    metadata: {
+      model: typeof message.metadata === 'string' ? JSON.parse(message.metadata || "{}").model : message.metadata?.model,
+      threadId: message.thread_id || message.threadId,
+      createdAt: formatISO(new Date(message.created_at || message.createdAt)),
+    },
+  }));
+}
+
+export const fetcher = async (url: string) => {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    const { code, cause } = await response.json();
+    throw new ChatSDKError(code as ErrorCode, cause);
+  }
+
+  return response.json();
+};
+
+export async function fetchWithErrorHandlers(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) {
+  try {
+    const response = await fetch(input, init);
+
+    if (!response.ok) {
+      const { code, cause } = await response.json();
+      throw new ChatSDKError(code as ErrorCode, cause);
+    }
+
+    return response;
+  } catch (error: unknown) {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      throw new ChatSDKError("offline:chat");
+    }
+
+    throw error;
+  }
+}
+
+export const getDefaultModel = cache(() => {
+  let defaultModel = models.find((m) => m.metadata.modelPickerDefault === true);
+
+  if (!defaultModel) {
+    console.error("Default model is not configured");
+    defaultModel = models[0];
+  }
+
+  return defaultModel;
+});
+
+export const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return `Unknown error: ${String(error)}`;
+};
+
+export function getTextFromMessage(message: ChatMessage): string {
+  return message.parts
+    .filter((part) => part.type === "text")
+    .map((part) => part.text)
+    .join("");
+}
+
+export function getTrailingMessageId({
+  messages,
+}: {
+  messages: Array<any>;
+}): string | null {
+  const trailingMessage = messages.at(-1);
+
+  if (!trailingMessage) return null;
+
+  return trailingMessage.id;
+}
+
+export function getLanguageFromClassName(
+  className: unknown,
+): BundledLanguage | null {
+  if (typeof className === "string") {
+    for (const token of className.split(/\s+/)) {
+      if (token.startsWith("language-")) {
+        return token.slice("language-".length) as BundledLanguage;
+      }
+      if (token.startsWith("lang-")) {
+        return token.slice("lang-".length) as BundledLanguage;
+      }
+    }
+  } else if (Array.isArray(className)) {
+    for (const c of className) {
+      if (typeof c !== "string") continue;
+      if (c.startsWith("language-")) return c.slice(9) as BundledLanguage;
+      if (c.startsWith("lang-")) return c.slice(5) as BundledLanguage;
+    }
+  }
+  return null;
+}
