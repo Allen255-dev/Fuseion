@@ -7,9 +7,9 @@ const buildId = crypto.randomUUID();
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  typedRoutes: true,
   experimental: {
     reactCompiler: true,
+    typedRoutes: true,
   },
   generateBuildId: () => {
     return buildId;

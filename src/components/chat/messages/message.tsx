@@ -7,11 +7,15 @@ import equal from "fast-deep-equal";
 import { ChatMessage } from "~/types";
 import { memo, useState } from "react";
 import { MessageEditor } from "./editor";
-import { MessageActions } from "./actions";
-import { MessageReasoning } from "./reasoning";
+import { MessageActions as MessageActionsComponent } from "./actions";
+import { Message, MessageContent, MessageActions } from "../../ai-elements/message";
+import { MessageResponse } from "../../ai-elements/response";
+import { Reasoning } from "../../ai-elements/reasoning";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PreviewAttachment } from './attachment-preview';
+import { CitationLinks, extractCitations } from "../citations";
+
 type FileUIPart = any; // Simplify for now to avoid SDK version conflicts
 
 const PurePreviewMessage = ({
@@ -32,121 +36,107 @@ const PurePreviewMessage = ({
   const messageFiles = (message.parts ?? []).filter((part): part is any => part.type === 'file');
 
   return (
-    <AnimatePresence>
-      <motion.div
-        data-testid={`message-${message.role}`}
-        className="flex flex-col w-full mx-auto max-w-3xl px-4 group/message gap-6"
-        initial={{ y: 5, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        data-role={message.role}
-      >
-        <div
-          className={cn(
-            "flex gap-4 w-full group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-[75%]",
-            {
-              "w-full": mode === "edit",
-              "group-data-[role=user]/message:w-fit": mode !== "edit",
-            },
-          )}
-        >
+    <Message from={message.role}>
+      <MessageContent>
+        {messageFiles.length > 0 && (
           <div
-            className={cn("flex flex-col gap-2 w-full", {
-              "min-h-24": message.role === "assistant" && requiresScrollPadding,
-            })}
+            data-testid={`message-attachments`}
+            className="flex flex-row gap-2 flex-wrap mb-2"
           >
-            {messageFiles.length > 0 && (
-              <div
-                data-testid={`message-attachments`}
-                className="flex flex-row justify-end gap-2 flex-wrap mb-2"
-              >
-                {messageFiles.map((filePart: any, idx: number) => (
-                  <PreviewAttachment
-                    key={filePart.url || idx}
-                    attachment={{
-                      type: "file",
-                      filename: filePart.name,
-                      url: filePart.url,
-                      mediaType: filePart.mimeType
-                    }}
-                  />
-                ))}
-              </div>
-            )}
+            {messageFiles.map((filePart: any, idx: number) => (
+              <PreviewAttachment
+                key={filePart.url || idx}
+                attachment={{
+                  type: "file",
+                  filename: filePart.name,
+                  url: filePart.url,
+                  mediaType: filePart.mimeType
+                }}
+              />
+            ))}
+          </div>
+        )}
 
-            {Array.isArray(message.parts) &&
-              message.parts
+        {Array.isArray(message.parts) &&
+          message.parts
+            .filter((part) => part != null)
+            .map((part, index) => {
+              const { type } = part;
+              const key = `message-${message.id}-part-${index}`;
 
-                .filter((part) => part != null)
-                .map((part, index) => {
-                  const { type } = part;
-                  const key = `message-${message.id}-part-${index}`;
+              if (type === "reasoning" && part.text?.trim().length > 0) {
+                return (
+                  <Reasoning
+                    key={key}
+                    isLoading={isLoading}
+                  >
+                    <MessageResponse>{part.text}</MessageResponse>
+                  </Reasoning>
+                );
+              }
 
-                  if (type === "reasoning" && part.text?.trim().length > 0) {
+              if (type === "text") {
+                if (part.text.trim() === "") {
+                  return null;
+                }
+
+                if (mode === "view") {
+                  if (message.role === 'user') {
                     return (
-                      <MessageReasoning
+                      <div
                         key={key}
-                        isLoading={isLoading}
-                        reasoning={part.text}
-                      />
+                        className="bg-primary text-primary-foreground px-4 py-2.5 rounded-2xl rounded-tr-none text-sm leading-relaxed whitespace-pre-wrap break-words"
+                      >
+                        {part.text}
+                      </div>
                     );
                   }
+                  return (
+                    <MessageResponse key={key}>
+                      {part.text}
+                    </MessageResponse>
+                  );
+                }
 
-                  if (type === "text") {
-                    if (part.text.trim() === "") {
-                      return null;
-                    }
+                if (mode === "edit") {
+                  return (
+                    <div
+                      key={key}
+                      className="flex flex-row gap-2 items-start"
+                    >
+                      <MessageEditor
+                        key={message.id}
+                        message={message}
+                        setMode={setMode}
+                        setMessages={setMessages}
+                        regenerate={regenerate}
+                      />
+                    </div>
+                  );
+                }
+              }
 
-                    if (mode === "view") {
-                      return (
-                        <TextPart
-                          key={key}
-                          text={part.text}
-                          role={message.role}
-                        />
-                      );
-                    }
+              return null;
+            })}
 
-                    if (mode === "edit") {
-                      return (
-                        <div
-                          key={key}
-                          className="flex flex-row gap-2 items-start"
-                        >
-                          <div className="size-8" />
-                          <MessageEditor
-                            key={message.id}
-                            message={message}
-                            setMode={setMode}
-                            setMessages={setMessages}
-                            regenerate={regenerate}
-                          />
-                        </div>
-                      );
-                    }
-                  }
+        {message.role === "assistant" && (
+          <CitationLinks citations={extractCitations(
+            message.parts?.filter(p => p.type === 'text').map(p => p.text).join('\n') || '',
+            message.toolInvocations
+          ).citations} />
+        )}
 
-                  // Handle file parts - they are already rendered above, so we skip them here
-                  if (type === "file") {
-                    return null;
-                  }
-
-                  // Handle other part types that might be added in the future
-                  return null;
-                })}
-
-            {
-              <MessageActions
-                key={`action-${message.id}`}
-                setMode={setMode}
-                message={message}
-                isLoading={isLoading}
-                regenerate={regenerate}
-              />
-            }
-          </div>
-        </div>
-      </motion.div>
-    </AnimatePresence>
+        <MessageActions>
+          <MessageActionsComponent
+            key={`action-${message.id}`}
+            setMode={setMode}
+            message={message}
+            isLoading={isLoading}
+            regenerate={regenerate}
+          />
+        </MessageActions>
+      </MessageContent>
+    </Message>
   );
 };
 

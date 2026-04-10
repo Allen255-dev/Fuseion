@@ -21,8 +21,9 @@ DEEP REASONING MODE:
 
   const searchPrompt = search ? `
 SEARCH CAPABILITY:
-- You have the ability to search the web for the most up-to-date information. 
-- When this mode is enabled, you should prefer sharing facts that are recently verified if possible.` : "";
+- You have the ability to search the web for the most up-to-date information using tools.
+- When you use search results, you MUST cite them using [n] format, where n is the index of the source (e.g., [1], [2]).
+- List citations naturally within the text.` : "";
 
   return `CORE IDENTITY AND ROLE:
 You are Fuseion, an AI assistant powered by the ${modelName} model. Your role is to assist and engage in conversation while being helpful, respectful, and engaging.

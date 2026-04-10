@@ -8,6 +8,7 @@ import { useChat } from "@ai-sdk/react";
 import type { Session } from "next-auth";
 import { DefaultChatTransport, type DataUIPart } from "ai";
 import { useRef, useEffect, useState } from "react";
+import { Conversation, ScrollAnchor } from "../ai-elements/conversation";
 import { useSearchParams } from "next/navigation";
 import { useDataStream } from "./data-stream/provider";
 import { useAutoResume } from "~/hooks/use-auto-resume";
@@ -90,12 +91,9 @@ const Chat = ({
   });
 
   return (
-    <div>
-      <div
-        className="absolute inset-0 overflow-y-scroll w-full pb-32"
-        style={{ scrollbarGutter: "stable both-edges" }}
-      >
-        <div className="mx-auto flex w-full max-w-3xl flex-col space-y-12 px-4 pt-20">
+    <div className="flex flex-col h-screen max-h-screen w-full min-h-0 relative overflow-hidden bg-background">
+      <div className="flex-1 min-h-0 relative overflow-hidden flex flex-col">
+        <Conversation className="h-full w-full overflow-y-auto">
           <Messages
             chatId={id}
             error={error}
@@ -105,17 +103,23 @@ const Chat = ({
             regenerate={regenerate}
             setMessages={setMessages}
           />
+          <ScrollAnchor />
+        </Conversation>
+      </div>
+      
+      <div className="shrink-0 w-full p-4 md:px-0 bg-background z-10 border-t border-border/5">
+        <div className="mx-auto w-full max-w-3xl pb-2">
+          <ChatInput
+            id={id}
+            stop={stop}
+            status={status}
+            session={session}
+            sendMessage={sendMessage}
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+          />
         </div>
       </div>
-      <ChatInput
-        id={id}
-        stop={stop}
-        status={status}
-        session={session}
-        sendMessage={sendMessage}
-        selectedModel={selectedModel}
-        onModelChange={setSelectedModel}
-      />
     </div>
   );
 };

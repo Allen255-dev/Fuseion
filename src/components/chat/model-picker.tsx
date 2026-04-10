@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import type { Session } from "next-auth";
-import { ChevronDown, Zap, Shield, Cpu } from "lucide-react";
+import { ChevronDown, Zap, Shield, Cpu, Search } from "lucide-react";
 import { Model, models } from "~/lib/ai/models";
 import { Button } from "~/components/ui/button";
 import { saveModelAsCookie } from "~/app/(chat)/actions";
@@ -26,6 +26,7 @@ const ProviderBadge = ({ provider }: { provider: string }) => {
     Google: "bg-blue-500/10 text-blue-400 border-blue-500/20",
     OpenRouter: "bg-purple-500/10 text-purple-400 border-purple-500/20",
     Groq: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    Search: "bg-green-500/10 text-green-400 border-green-500/20",
   };
 
   return (
@@ -65,7 +66,11 @@ const ModelPicker = ({ session, selectedModel, onModelChange }: ModelPickerProps
           size="sm"
           className="px-3 py-1.5 flex items-center gap-2 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all duration-200"
         >
-          <Cpu className="size-3.5 text-blue-400" />
+          {selectedChatModel?.id === "web-search" ? (
+            <Search className="size-3.5 text-green-400" />
+          ) : (
+            <Cpu className="size-3.5 text-blue-400" />
+          )}
           <span className="text-xs font-medium">{selectedChatModel?.name}</span>
           <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>

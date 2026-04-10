@@ -24,15 +24,17 @@ import {
   X,
   Pin,
   Trash,
-  Search,
   Rocket,
   PinOff,
   Loader2,
   Settings2,
   Sparkles,
   Plus,
+  PlusCircle,
   LogOut,
-  User,
+  HelpCircle,
+  MessagesSquare,
+  Bug,
 } from "lucide-react";
 import {
   ContextMenu,
@@ -65,7 +67,6 @@ import { useThreads } from "~/hooks/use-threads";
 export function ChatSidebar({ session }: { session: Session | null }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [search, setSearch] = useState("");
   const userId = session?.user?.userId ?? "";
   const [isPending, startTransition] = useTransition();
   const [isRegenerating, startRegeneration] = useTransition();
@@ -79,7 +80,7 @@ export function ChatSidebar({ session }: { session: Session | null }) {
     results: threads,
     status,
     loadMore,
-  } = useThreads(userId, search);
+  } = useThreads(userId, "");
 
   const mutateThread = async (args: any) => {
     try {
@@ -271,50 +272,19 @@ export function ChatSidebar({ session }: { session: Session | null }) {
 
   return (
     <Sidebar collapsible="offcanvas" variant="inset" className="bg-sidebar border-r border-white/5">
-      <SidebarHeader className="flex flex-col gap-4 p-4 !pt-safe">
-        <Link href="/" className="flex items-center justify-center gap-2 group px-2 py-2 w-full transition-all duration-300">
-          <div className="size-8 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-900/20 group-hover:shadow-blue-900/40 transition-all duration-300 overflow-hidden">
-            <img src="/fuseion.png" alt="Fuseion" className="size-full object-cover" />
-          </div>
-          <span className="text-xl font-bold font-heading bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 tracking-tight group-data-[collapsible=icon]:hidden">
-            Fuseion
-          </span>
-        </Link>
-
-        <div className="flex flex-col gap-3 group-data-[collapsible=icon]:hidden">
+      <SidebarHeader className="flex flex-col gap-4 p-4 !pt-safe min-h-[72px]">
+        <div className="flex flex-col gap-3 mt-14">
           <Button
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-purple-900/20 hover:shadow-purple-900/40 hover:opacity-90 transition-all duration-300 h-10 rounded-xl font-medium"
+            variant="secondary"
             onClick={() => {
               router.push("/chat");
               router.refresh();
             }}
+            className="w-full justify-center gap-2.5 h-11 rounded-full bg-zinc-800/40 hover:bg-zinc-800/60 border border-white/5 text-zinc-300 hover:text-white transition-all duration-200 shadow-sm"
           >
-            <Plus className="mr-2 h-4 w-4" />
-            New Chat
+            <PlusCircle className="size-4.5" />
+            <span className="text-sm font-semibold tracking-tight">New chat</span>
           </Button>
-
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 pointer-events-none" />
-            <Input
-              role="searchbox"
-              aria-label="Search threads"
-              placeholder="Search..."
-              className="w-full pl-9 pr-3 h-9 bg-white/5 border-white/10 rounded-lg text-sm text-foreground placeholder:text-muted-foreground/50 focus:bg-white/10 transition-colors"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            {search && (
-              <Button
-                variant="ghost"
-                type="button"
-                size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
-                onClick={() => setSearch("")}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
         </div>
       </SidebarHeader>
 
@@ -334,9 +304,9 @@ export function ChatSidebar({ session }: { session: Session | null }) {
           <div className="flex items-center justify-center py-6">
             <Loader2 className="size-4 animate-spin text-muted-foreground" />
           </div>
-        ) : threads.length === 0 && search ? (
+        ) : threads.length === 0 ? (
           <div className="py-6 text-center text-sm text-muted-foreground">
-            No results found
+            No threads yet
           </div>
         ) : (
           <>
@@ -361,7 +331,7 @@ export function ChatSidebar({ session }: { session: Session | null }) {
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton
                 size="lg"
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-white/5 transition-colors"
+                className="bg-zinc-900 border border-white/5 rounded-full data-[state=open]:bg-zinc-800 data-[state=open]:text-sidebar-accent-foreground hover:bg-zinc-800 transition-all shadow-md py-6 px-4"
               >
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={session.user.picture} alt={session.user.name || ""} />
@@ -386,9 +356,17 @@ export function ChatSidebar({ session }: { session: Session | null }) {
                 <Settings2 className="mr-2 size-4" />
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer focus:bg-white/10">
-                <User className="mr-2 size-4" />
-                Profile
+              <DropdownMenuItem className="cursor-pointer focus:bg-white/10" onClick={() => router.push('/help')}>
+                <HelpCircle className="mr-2 size-4" />
+                Help Center
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer focus:bg-white/10" onClick={() => router.push('/community')}>
+                <MessagesSquare className="mr-2 size-4" />
+                Community
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer focus:bg-white/10" onClick={() => router.push('/feedback')}>
+                <Bug className="mr-2 size-4" />
+                Feedback
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/10" />
               <DropdownMenuItem

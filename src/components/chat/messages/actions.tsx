@@ -10,7 +10,7 @@ import { Button } from "~/components/ui/button";
 import { useCopyToClipboard } from "usehooks-ts";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { Dispatch, SetStateAction, memo } from "react";
-import { Copy, Pencil, RefreshCcw } from "lucide-react";
+import { Copy, Pencil, RefreshCcw, ThumbsUp, ThumbsDown, Share2 } from "lucide-react";
 
 export function PureMessageActions({
   message,
@@ -83,13 +83,13 @@ export function PureMessageActions({
     );
 
   return (
-    <div className="flex flex-row gap-2 items-center opacity-0 group-hover/message:opacity-100 transition-opacity duration-150">
+    <div className="flex flex-row gap-2 items-center opacity-40 group-hover/message:opacity-100 transition-opacity duration-200 mt-1">
       <TooltipProvider delayDuration={0}>
-        <div className="flex flex-row gap-2">
+        <div className="flex flex-row gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                className="p-2 rounded-md h-fit text-muted-foreground size-8"
+                className="p-1 px-[5px] rounded-md h-fit text-muted-foreground hover:text-foreground transition-colors"
                 variant="ghost"
                 size="icon"
                 onClick={async () => {
@@ -108,7 +108,7 @@ export function PureMessageActions({
                   toast.success("Copied to clipboard!");
                 }}
               >
-                <Copy />
+                <Copy className="size-[18px]" />
               </Button>
             </TooltipTrigger>
             <TooltipContent align="start" side="bottom">
@@ -118,22 +118,64 @@ export function PureMessageActions({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                className="p-2 rounded-md h-fit text-muted-foreground size-8"
+                className="p-1 px-[5px] rounded-md h-fit text-muted-foreground hover:text-foreground transition-colors"
                 variant="ghost"
                 size="icon"
                 onClick={() => regenerate({ messageId: message.id })}
               >
-                <RefreshCcw />
+                <RefreshCcw className="size-[18px]" />
               </Button>
             </TooltipTrigger>
             <TooltipContent align="start" side="bottom">
               Regenerate
             </TooltipContent>
           </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="p-1 px-[5px] rounded-md h-fit text-muted-foreground hover:text-foreground transition-colors"
+                variant="ghost"
+                size="icon"
+              >
+                <ThumbsUp className="size-[18px]" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent align="start" side="bottom">
+              Good response
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="p-1 px-[5px] rounded-md h-fit text-muted-foreground hover:text-foreground transition-colors"
+                variant="ghost"
+                size="icon"
+              >
+                <ThumbsDown className="size-[18px]" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent align="start" side="bottom">
+              Bad response
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="p-1 px-[5px] rounded-md h-fit text-muted-foreground hover:text-foreground transition-colors"
+                variant="ghost"
+                size="icon"
+              >
+                <Share2 className="size-[18px]" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent align="start" side="bottom">
+              Share
+            </TooltipContent>
+          </Tooltip>
         </div>
       </TooltipProvider>
       {message.metadata?.model && (
-        <span className="text-xs text-muted-foreground">
+        <span className="text-[10px] items-center gap-1 font-medium text-muted-foreground/60 uppercase tracking-wider ml-1 hidden sm:flex">
           {message.metadata.model.name}
         </span>
       )}
