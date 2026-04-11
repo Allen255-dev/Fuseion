@@ -31,6 +31,7 @@ interface UploadedFile {
   type: string;
   url: string;
   storageId: string;
+  size: number;
 }
 
 const ChatInput = ({
@@ -42,6 +43,7 @@ const ChatInput = ({
   selectedModel,
   onModelChange,
 }: ChatInputProps) => {
+
   const [inputValue, setInputValue] = useState("");
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -62,47 +64,68 @@ const ChatInput = ({
 
 
 
+  // Handle clipboard paste
+  useEffect(() => {
+    const handlePaste = async (event: ClipboardEvent) => {
+      const items = event.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            await uploadAndAddFile(file);
+          }
+          break;
+        }
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, []);
+
+  const uploadAndAddFile = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!result.ok) throw new Error("Upload failed");
+      const { storageId } = await result.json();
+      const publicUrl = await getFileUrl({ storageId });
+
+      if (!publicUrl) throw new Error("Could not get file URL");
+
+      setFiles(prev => [...prev, {
+        id: Math.random().toString(36).substring(7),
+        name: file.name,
+        type: file.type,
+        url: publicUrl,
+        storageId: storageId,
+        size: file.size
+      }]);
+    } catch (error: any) {
+      console.error("Failed to upload file:", error);
+      toast.error(error.message || "Failed to upload file.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
     if (!selectedFiles || selectedFiles.length === 0) return;
 
-    setIsUploading(true);
-    try {
-      for (const file of Array.from(selectedFiles)) {
-        // Step 1: Get upload URL
-        const uploadUrl = await generateUploadUrl();
-
-        // Step 2: POST the file to the URL
-        const result = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": file.type },
-          body: file,
-        });
-
-        if (!result.ok) throw new Error("Upload failed");
-
-        const { storageId } = await result.json();
-
-        // Step 3: Get the public URL for the storage ID
-        const publicUrl = await getFileUrl({ storageId });
-
-        if (!publicUrl) throw new Error("Could not get file URL");
-
-        setFiles(prev => [...prev, {
-          id: Math.random().toString(36).substring(7),
-          name: file.name,
-          type: file.type,
-          url: publicUrl,
-          storageId: storageId
-        }]);
-      }
-    } catch (error: any) {
-      console.error("Failed to upload file:", error);
-      toast.error(error.message || "Failed to upload file. Please check your connection.");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+    for (const file of Array.from(selectedFiles)) {
+      await uploadAndAddFile(file);
     }
+    
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const removeFile = (fileId: string) => {
@@ -121,13 +144,18 @@ const ChatInput = ({
         }
       ];
 
+      // Add files from general upload
       files.forEach(file => {
+        const isImage = file.type.startsWith('image/');
         messageParts.push({
-          type: "file",
+          type: isImage ? "image" : "file",
           name: file.name,
           url: file.url,
           mimeType: file.type,
-          storageId: file.storageId
+          storageId: file.storageId,
+          size: file.size,
+          // For AI SDK recognition
+          image: isImage ? file.url : undefined
         });
       });
 
@@ -154,24 +182,39 @@ const ChatInput = ({
     }
   };
 
+  const formatSize = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   return (
     <div className="w-full">
       {/* File Previews */}
       {files.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-white/5">
+        <div className="flex flex-wrap gap-3 mb-4">
           {files.map((file) => (
-            <div key={file.id} className="relative group flex items-center gap-2 bg-white/5 rounded-lg p-2 pr-8 border border-white/10">
-              {file.type.startsWith('image/') ? (
-                <ImageIcon className="size-4 text-blue-400" />
-              ) : (
-                <FileIcon className="size-4 text-purple-400" />
-              )}
-              <span className="text-xs truncate max-w-[120px] font-medium">{file.name}</span>
+            <div key={file.id} className="relative group flex items-center gap-3 bg-white/5 rounded-xl p-3 pr-10 border border-white/10 min-w-[200px] max-w-[300px] animate-in fade-in slide-in-from-bottom-2">
+              <div className="size-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0 text-blue-400">
+                {file.type.startsWith('image/') ? (
+                  <ImageIcon className="size-5" />
+                ) : (
+                  <FileIcon className="size-5" />
+                )}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-medium truncate text-white">{file.name}</span>
+                <span className="text-[10px] text-muted-foreground uppercase">
+                  {file.type.split('/')[1] || 'FILE'} • {formatSize(file.size)}
+                </span>
+              </div>
               <button
                 onClick={() => removeFile(file.id)}
-                className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-white/10 text-muted-foreground hover:text-white transition-colors"
               >
-                <X className="size-3" />
+                <X className="size-4" />
               </button>
             </div>
           ))}
@@ -186,6 +229,31 @@ const ChatInput = ({
         status={status}
         isUploading={isUploading}
         placeholder="Ask Fuseion anything..."
+        secondaryAction={
+          <>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              multiple
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={isUploading}
+              onClick={() => fileInputRef.current?.click()}
+              className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 mr-1"
+            >
+              {isUploading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Paperclip className="size-4" />
+              )}
+            </Button>
+          </>
+        }
       >
         <div className="flex items-center gap-2">
           <Button
@@ -204,35 +272,9 @@ const ChatInput = ({
             DeepThink
           </Button>
 
-
-
           <div className="h-4 w-px bg-white/10 mx-1" />
 
           <ModelPicker session={session} selectedModel={selectedModel} onModelChange={onModelChange} />
-          
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-            multiple
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            disabled={isUploading}
-            onClick={() => fileInputRef.current?.click()}
-            className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5"
-          >
-            {isUploading ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Paperclip className="size-4" />
-            )}
-          </Button>
-
-
         </div>
       </PromptInput>
 

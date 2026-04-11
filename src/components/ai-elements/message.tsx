@@ -38,7 +38,7 @@ export function MessageActions({ children, className }: { children: React.ReactN
   return (
     <div
       className={cn(
-        'flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100',
+        'flex items-center gap-1.5 opacity-100',
         'group-data-[role=user]/message:justify-end',
         className
       )}

@@ -10,7 +10,7 @@ import { Button } from "~/components/ui/button";
 import { useCopyToClipboard } from "usehooks-ts";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { Dispatch, SetStateAction, memo } from "react";
-import { Copy, Pencil, RefreshCcw, ThumbsUp, ThumbsDown, Share2 } from "lucide-react";
+import { Copy, Pencil, RefreshCcw, ThumbsUp, ThumbsDown, Share2, Forward } from "lucide-react";
 
 export function PureMessageActions({
   message,
@@ -25,12 +25,13 @@ export function PureMessageActions({
 }) {
   const [, copyToClipboard] = useCopyToClipboard();
 
-  if (isLoading) return null;
+  // Always return actions unless there's a specific reason not to
+  // if (isLoading) return null;
 
   if (message.role === "user")
     return (
       <TooltipProvider delayDuration={0}>
-        <div className="flex flex-row gap-2 opacity-0 group-hover/message:opacity-100 transition-opacity duration-150 justify-end">
+        <div className="flex flex-row gap-2 opacity-100 transition-opacity duration-150 justify-end">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -83,7 +84,7 @@ export function PureMessageActions({
     );
 
   return (
-    <div className="flex flex-row gap-2 items-center opacity-40 group-hover/message:opacity-100 transition-opacity duration-200 mt-1">
+    <div className="flex flex-row gap-2 items-center opacity-100 transition-opacity duration-200 mt-1">
       <TooltipProvider delayDuration={0}>
         <div className="flex flex-row gap-1">
           <Tooltip>
@@ -118,9 +119,10 @@ export function PureMessageActions({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                className="p-1 px-[5px] rounded-md h-fit text-muted-foreground hover:text-foreground transition-colors"
+                className="p-1 px-[5px] rounded-md h-fit text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
                 variant="ghost"
                 size="icon"
+                disabled={isLoading}
                 onClick={() => regenerate({ messageId: message.id })}
               >
                 <RefreshCcw className="size-[18px]" />
@@ -165,7 +167,7 @@ export function PureMessageActions({
                 variant="ghost"
                 size="icon"
               >
-                <Share2 className="size-[18px]" />
+                <Forward className="size-[18px]" />
               </Button>
             </TooltipTrigger>
             <TooltipContent align="start" side="bottom">

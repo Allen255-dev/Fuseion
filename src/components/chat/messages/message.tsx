@@ -33,7 +33,7 @@ const PurePreviewMessage = ({
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
 
-  const messageFiles = (message.parts ?? []).filter((part): part is any => part.type === 'file');
+  const messageFiles = (message.parts ?? []).filter((part): part is any => (part as any).type === 'file' || (part as any).type === 'image');
 
   return (
     <Message from={message.role}>

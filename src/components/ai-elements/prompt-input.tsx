@@ -13,6 +13,7 @@ export interface PromptInputProps {
   placeholder?: string;
   className?: string;
   children?: React.ReactNode;
+  secondaryAction?: React.ReactNode;
 }
 
 export function PromptInput({
@@ -24,7 +25,8 @@ export function PromptInput({
   isUploading,
   placeholder = 'Type a message...',
   className,
-  children
+  children,
+  secondaryAction
 }: PromptInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -62,6 +64,7 @@ export function PromptInput({
         </div>
         
         <div className="flex items-center gap-2">
+          {secondaryAction}
           {status === 'streaming' ? (
             <Button
               type="button"
