@@ -5,7 +5,17 @@ import { memo, useState, useRef, useEffect } from "react";
 import { Model } from "~/lib/ai/models";
 import type { Session } from "next-auth";
 import ModelPicker from "./model-picker";
-import { ArrowUp, Square, Paperclip, X, Image as ImageIcon, File as FileIcon, Loader2, Atom } from "lucide-react";
+import {
+  ArrowUp,
+  Square,
+  Paperclip,
+  X,
+  Image as ImageIcon,
+  File as FileIcon,
+  Loader2,
+  Atom,
+  Globe,
+} from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
 import { PromptInput } from "../ai-elements/prompt-input";
@@ -47,7 +57,6 @@ const ChatInput = ({
   const [inputValue, setInputValue] = useState("");
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [isDeepThink, setIsDeepThink] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,12 +66,10 @@ const ChatInput = ({
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
     }
   }, [inputValue]);
-
-
 
   // Handle clipboard paste
   useEffect(() => {
@@ -71,7 +78,7 @@ const ChatInput = ({
       if (!items) return;
 
       for (const item of Array.from(items)) {
-        if (item.type.startsWith('image/')) {
+        if (item.type.startsWith("image/")) {
           const file = item.getAsFile();
           if (file) {
             await uploadAndAddFile(file);
@@ -81,8 +88,8 @@ const ChatInput = ({
       }
     };
 
-    document.addEventListener('paste', handlePaste);
-    return () => document.removeEventListener('paste', handlePaste);
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
   }, []);
 
   const uploadAndAddFile = async (file: File) => {
@@ -101,14 +108,17 @@ const ChatInput = ({
 
       if (!publicUrl) throw new Error("Could not get file URL");
 
-      setFiles(prev => [...prev, {
-        id: Math.random().toString(36).substring(7),
-        name: file.name,
-        type: file.type,
-        url: publicUrl,
-        storageId: storageId,
-        size: file.size
-      }]);
+      setFiles((prev) => [
+        ...prev,
+        {
+          id: Math.random().toString(36).substring(7),
+          name: file.name,
+          type: file.type,
+          url: publicUrl,
+          storageId: storageId,
+          size: file.size,
+        },
+      ]);
     } catch (error: any) {
       console.error("Failed to upload file:", error);
       toast.error(error.message || "Failed to upload file.");
@@ -124,12 +134,12 @@ const ChatInput = ({
     for (const file of Array.from(selectedFiles)) {
       await uploadAndAddFile(file);
     }
-    
+
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const removeFile = (fileId: string) => {
-    setFiles(prev => prev.filter(f => f.id !== fileId));
+    setFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
 
   const handleSend = (e?: React.FormEvent) => {
@@ -141,12 +151,12 @@ const ChatInput = ({
         {
           type: "text",
           text: inputValue.trim(),
-        }
+        },
       ];
 
       // Add files from general upload
-      files.forEach(file => {
-        const isImage = file.type.startsWith('image/');
+      files.forEach((file) => {
+        const isImage = file.type.startsWith("image/");
         messageParts.push({
           type: isImage ? "image" : "file",
           name: file.name,
@@ -155,22 +165,20 @@ const ChatInput = ({
           storageId: file.storageId,
           size: file.size,
           // For AI SDK recognition
-          image: isImage ? file.url : undefined
+          image: isImage ? file.url : undefined,
         });
       });
 
       sendMessage({
         role: "user",
         parts: messageParts,
-        metadata: {
-          deepThink: isDeepThink,
-        } as any
       });
+
 
       setInputValue("");
       setFiles([]);
       if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'; // Reset height
+        textareaRef.current.style.height = "auto"; // Reset height
       }
     }
   };
@@ -183,11 +191,11 @@ const ChatInput = ({
   };
 
   const formatSize = (bytes: number) => {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return "0 B";
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   return (
@@ -196,18 +204,23 @@ const ChatInput = ({
       {files.length > 0 && (
         <div className="flex flex-wrap gap-3 mb-4">
           {files.map((file) => (
-            <div key={file.id} className="relative group flex items-center gap-3 bg-white/5 rounded-xl p-3 pr-10 border border-white/10 min-w-[200px] max-w-[300px] animate-in fade-in slide-in-from-bottom-2">
+            <div
+              key={file.id}
+              className="relative group flex items-center gap-3 bg-white/5 rounded-xl p-3 pr-10 border border-white/10 min-w-[200px] max-w-[300px] animate-in fade-in slide-in-from-bottom-2"
+            >
               <div className="size-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0 text-blue-400">
-                {file.type.startsWith('image/') ? (
+                {file.type.startsWith("image/") ? (
                   <ImageIcon className="size-5" />
                 ) : (
                   <FileIcon className="size-5" />
                 )}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-medium truncate text-white">{file.name}</span>
+                <span className="text-sm font-medium truncate text-white">
+                  {file.name}
+                </span>
                 <span className="text-[10px] text-muted-foreground uppercase">
-                  {file.type.split('/')[1] || 'FILE'} • {formatSize(file.size)}
+                  {file.type.split("/")[1] || "FILE"} • {formatSize(file.size)}
                 </span>
               </div>
               <button
@@ -255,30 +268,13 @@ const ChatInput = ({
           </>
         }
       >
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsDeepThink(!isDeepThink)}
-            className={cn(
-              "h-8 gap-2 rounded-full px-3 text-xs font-medium transition-all duration-200 border border-white/5",
-              isDeepThink
-                ? "bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20"
-                : "text-muted-foreground hover:bg-white/5"
-            )}
-          >
-            <Atom className={cn("size-3.5", isDeepThink && "animate-pulse-slow")} />
-            DeepThink
-          </Button>
+          <ModelPicker
+            session={session}
+            selectedModel={selectedModel}
+            onModelChange={onModelChange}
+          />
 
-          <div className="h-4 w-px bg-white/10 mx-1" />
-
-          <ModelPicker session={session} selectedModel={selectedModel} onModelChange={onModelChange} />
-        </div>
       </PromptInput>
-
-
 
       <div className="mt-3 text-center text-[10px] text-muted-foreground/40 pt-2">
         Fuseion can make mistakes. Check important info.
@@ -292,7 +288,6 @@ export default memo(
   (prev, next) =>
     prev.id === next.id &&
     prev.status === next.status &&
-    prev.session?.user?.tier === next.session?.user?.tier &&
     prev.selectedModel.id === next.selectedModel.id,
 );
 

@@ -23,17 +23,21 @@ const Nav = () => {
   if (isMobile) return null;
 
   return (
-    <div 
+    <div
       className={cn(
         "pointer-events-auto fixed top-4 z-50 flex items-center transition-all duration-300 ease-in-out",
-        state === "expanded" ? "left-6 w-[200px]" : "left-4"
+        state === "expanded" ? "left-6 w-[200px]" : "left-4",
       )}
     >
       <div className="flex items-center justify-between w-full gap-4">
         {/* Logo Section */}
         <Link href="/" className="flex items-center gap-2.5 group shrink-0">
           <div className="size-8 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-900/20 overflow-hidden shrink-0">
-            <img src="/fuseion.png" alt="Fuseion" className="size-full object-cover" />
+            <img
+              src="/fuseion.png"
+              alt="Fuseion"
+              className="size-full object-cover"
+            />
           </div>
           {state === "expanded" && (
             <span className="text-xl font-bold font-heading text-white tracking-tight animate-in fade-in slide-in-from-left-2 duration-300">
@@ -61,7 +65,7 @@ const Nav = () => {
           </TooltipProvider>
         ) : (
           <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
-             <div className="flex items-center bg-[#1c1c1e] border border-white/5 rounded-full p-1 shadow-2xl">
+            <div className="flex items-center bg-[#1c1c1e] border border-white/5 rounded-full p-1 shadow-2xl">
               <TooltipProvider delayDuration={0}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -100,9 +104,11 @@ const Nav = () => {
                 </Tooltip>
               </TooltipProvider>
             </div>
-            
+
             <div className="flex flex-col -space-y-0.5 pointer-events-none">
-              <span className="text-[13px] font-bold text-white tracking-tight uppercase">Fuseion</span>
+              <span className="text-[13px] font-bold text-white tracking-tight uppercase">
+                Fuseion
+              </span>
               <span className="text-[10px] text-zinc-500 font-medium">Pro</span>
             </div>
           </div>

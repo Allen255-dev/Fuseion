@@ -10,7 +10,15 @@ import { Button } from "~/components/ui/button";
 import { useCopyToClipboard } from "usehooks-ts";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { Dispatch, SetStateAction, memo } from "react";
-import { Copy, Pencil, RefreshCcw, ThumbsUp, ThumbsDown, Share2, Forward } from "lucide-react";
+import {
+  Copy,
+  Pencil,
+  RefreshCcw,
+  ThumbsUp,
+  ThumbsDown,
+  Share2,
+  Forward,
+} from "lucide-react";
 
 export function PureMessageActions({
   message,

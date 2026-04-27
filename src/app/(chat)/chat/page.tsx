@@ -31,7 +31,8 @@ export default async function ChatPage() {
   try {
     const parsedModel = JSON.parse(model.value);
 
-    selectedModel = models.find((m) => m.id === parsedModel.id) ?? getDefaultModel();
+    selectedModel =
+      models.find((m) => m.id === parsedModel.id) ?? getDefaultModel();
   } catch {
     selectedModel = getDefaultModel();
   }

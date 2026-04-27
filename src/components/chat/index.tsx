@@ -30,7 +30,8 @@ const Chat = ({
   initialMessages = [],
 }: ChatProps) => {
   const { setDataStream } = useDataStream();
-  const [selectedModel, setSelectedModel] = useState<Model>(initialSelectedModel);
+  const [selectedModel, setSelectedModel] =
+    useState<Model>(initialSelectedModel);
 
   const {
     messages,
@@ -106,7 +107,7 @@ const Chat = ({
           <ScrollAnchor />
         </Conversation>
       </div>
-      
+
       <div className="shrink-0 w-full p-4 md:px-0 bg-background z-10 border-t border-border/5">
         <div className="mx-auto w-full max-w-3xl pb-2">
           <ChatInput
@@ -123,5 +124,6 @@ const Chat = ({
     </div>
   );
 };
+
 
 export default Chat;

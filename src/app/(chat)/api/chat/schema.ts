@@ -44,10 +44,12 @@ export const postRequestBodySchema = z.object({
     id: z.uuid(),
     role: z.enum(["user"]),
     parts: z.array(z.any()),
-    metadata: z.object({
-      deepThink: z.boolean().optional(),
-      search: z.boolean().optional(),
-    }).optional(),
+    metadata: z
+      .object({
+        deepThink: z.boolean().optional(),
+        search: z.boolean().optional(),
+      })
+      .optional(),
   }),
   model: modelSchema,
 });

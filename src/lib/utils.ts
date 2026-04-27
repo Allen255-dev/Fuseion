@@ -19,15 +19,18 @@ export function generateUUID(): string {
   });
 }
 
-export function convertToUIMessages(
-  messages: any[],
-): ChatMessage[] {
+export function convertToUIMessages(messages: any[]): ChatMessage[] {
   return messages.map((message) => ({
     id: message.id || message.external_id,
     role: message.role as "user" | "assistant" | "system",
-    parts: Array.isArray(message.parts) ? message.parts : (JSON.parse(message.parts || "[]") as MessagePart[]),
+    parts: Array.isArray(message.parts)
+      ? message.parts
+      : (JSON.parse(message.parts || "[]") as MessagePart[]),
     metadata: {
-      model: typeof message.metadata === 'string' ? JSON.parse(message.metadata || "{}").model : message.metadata?.model,
+      model:
+        typeof message.metadata === "string"
+          ? JSON.parse(message.metadata || "{}").model
+          : message.metadata?.model,
       threadId: message.thread_id || message.threadId,
       createdAt: formatISO(new Date(message.created_at || message.createdAt)),
     },

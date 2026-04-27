@@ -1,29 +1,40 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { Camera, X } from 'lucide-react';
+import { useState, useRef, useEffect } from "react";
+import { Camera, X } from "lucide-react";
 
 interface ImageUploadProps {
-  onImageSelect: (imageData: { base64: string; mimeType: string; name: string; preview: string; file: File }) => void;
+  onImageSelect: (imageData: {
+    base64: string;
+    mimeType: string;
+    name: string;
+    preview: string;
+    file: File;
+  }) => void;
   onImageRemove: () => void;
   selectedImage: { preview: string; name: string } | null;
   isLoading: boolean;
 }
 
-export function ImageUpload({ onImageSelect, onImageRemove, selectedImage, isLoading }: ImageUploadProps) {
+export function ImageUpload({
+  onImageSelect,
+  onImageRemove,
+  selectedImage,
+  isLoading,
+}: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processImage = async (file: File) => {
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file (JPEG, PNG, WEBP, GIF)');
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file (JPEG, PNG, WEBP, GIF)");
       return;
     }
 
     // Validate file size (max 5MB for fast processing)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Image must be less than 5MB');
+      alert("Image must be less than 5MB");
       return;
     }
 
@@ -32,21 +43,21 @@ export function ImageUpload({ onImageSelect, onImageRemove, selectedImage, isLoa
     try {
       const preview = URL.createObjectURL(file);
       const reader = new FileReader();
-      
+
       reader.onloadend = () => {
         const base64 = reader.result as string;
         onImageSelect({
-          base64: base64.split(',')[1], // Remove data:image/xxx;base64, prefix
+          base64: base64.split(",")[1], // Remove data:image/xxx;base64, prefix
           mimeType: file.type,
           name: file.name,
           preview: preview,
-          file: file
+          file: file,
         });
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Error processing image:', error);
-      alert('Failed to process image');
+      console.error("Error processing image:", error);
+      alert("Failed to process image");
     } finally {
       setIsUploading(false);
     }
@@ -58,7 +69,7 @@ export function ImageUpload({ onImageSelect, onImageRemove, selectedImage, isLoa
       processImage(file);
     }
     // Reset input so same file can be selected again
-    event.target.value = '';
+    event.target.value = "";
   };
 
   const handlePaste = (event: ClipboardEvent) => {
@@ -66,7 +77,7 @@ export function ImageUpload({ onImageSelect, onImageRemove, selectedImage, isLoa
     const items = event.clipboardData?.items;
     if (items) {
       for (const item of items) {
-        if (item.type.startsWith('image/')) {
+        if (item.type.startsWith("image/")) {
           const file = item.getAsFile();
           if (file) {
             processImage(file);
@@ -78,8 +89,8 @@ export function ImageUpload({ onImageSelect, onImageRemove, selectedImage, isLoa
   };
 
   useEffect(() => {
-    document.addEventListener('paste', handlePaste);
-    return () => document.removeEventListener('paste', handlePaste);
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
   }, []);
 
   return (
@@ -91,7 +102,7 @@ export function ImageUpload({ onImageSelect, onImageRemove, selectedImage, isLoa
         onChange={handleFileSelect}
         className="hidden"
       />
-      
+
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}

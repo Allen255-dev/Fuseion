@@ -68,7 +68,9 @@ function PureMessages({
       {error && (
         <motion.div
           data-testid="message-assistant-error"
-          className={"w-full mx-auto max-w-3xl px-4 group/message min-h-24 pb-12"}
+          className={
+            "w-full mx-auto max-w-3xl px-4 group/message min-h-24 pb-12"
+          }
           initial={{ y: 5, opacity: 0 }}
           animate={{ y: 0, opacity: 1, transition: { delay: 0.2 } }}
           data-role="assistant"
@@ -79,6 +81,7 @@ function PureMessages({
                 ? error.message
                 : "Something went wrong"
             }
+            cause={(error as any)?.cause}
           />
         </motion.div>
       )}

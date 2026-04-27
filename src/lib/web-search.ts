@@ -1,70 +1,60 @@
-// DuckDuckGo is free and privacy-focused - no API key needed!
+import { tavily } from "@tavily/core";
+
 export interface SearchResult {
   title: string;
   snippet: string;
   url: string;
   source: string;
+  score?: number;
+  publishedDate?: string;
 }
 
-export async function searchWeb(query: string): Promise<SearchResult[]> {
+export interface SearchOptions {
+  depth?: "basic" | "advanced";
+  maxResults?: number;
+}
+
+/**
+ * Searches the web using the Tavily API.
+ * Requires TAVILY_API_KEY to be set in environment variables.
+ */
+export async function searchWeb(
+  query: string,
+  options: SearchOptions = {},
+): Promise<SearchResult[]> {
   try {
-    // Use DuckDuckGo API (free, no API key)
-    const response = await fetch(
-      `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`,
-      {
-        headers: {
-            'User-Agent': 'Fuseion/1.0 (https://fuseion.ai)'
-        }
-      }
-    );
-    
-    if (!response.ok) {
-        throw new Error(`DuckDuckGo API error: ${response.status}`);
+    const apiKey = process.env.TAVILY_API_KEY;
+
+    if (!apiKey) {
+      console.warn("TAVILY_API_KEY is not set. Falling back to empty results.");
+      return [];
     }
 
-    const data = await response.json();
-    const results: SearchResult[] = [];
-    
-    // Add abstract if available (like DeepSeek's main result)
-    if (data.AbstractText && data.AbstractText.length > 0) {
-      results.push({
-        title: data.AbstractText.split('.')[0].substring(0, 100),
-        snippet: data.AbstractText,
-        url: data.AbstractURL || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
-        source: 'DuckDuckGo'
-      });
+    const tvly = tavily({ apiKey });
+
+    // Execute search with advanced depth by default for better quality
+    const response = await tvly.search(query, {
+      searchDepth: options.depth || "advanced",
+      maxResults: options.maxResults || 8,
+      includeAnswer: true,
+      includeImages: false,
+      includeRawContent: false,
+    });
+
+    if (!response || !response.results) {
+      return [];
     }
-    
-    // Add related topics
-    if (data.RelatedTopics && Array.isArray(data.RelatedTopics)) {
-      for (const topic of data.RelatedTopics) {
-        if (topic.Text && topic.FirstURL) {
-          let title = topic.Text.split(' - ')[0] || topic.Text;
-          if (title.length > 100) title = title.substring(0, 100);
-          
-          results.push({
-            title: title,
-            snippet: topic.Text,
-            url: topic.FirstURL,
-            source: 'DuckDuckGo'
-          });
-        }
-      }
-    }
-    
-    // Add answer if available (like DeepSeek's quick answer)
-    if (data.Answer && data.Answer.length > 0) {
-      results.unshift({
-        title: 'Direct Answer',
-        snippet: data.Answer,
-        url: data.AnswerURL || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
-        source: 'DuckDuckGo'
-      });
-    }
-    
-    return results.slice(0, 5); // Return top 5 results
+
+    return response.results.map((res) => ({
+      title: res.title,
+      snippet: res.content,
+      url: res.url,
+      source: "Tavily Search Engine",
+      score: res.score,
+      publishedDate: res.publishedDate,
+    }));
   } catch (error) {
-    console.error('Web search error:', error);
+    console.error("Tavily search error:", error);
     return [];
   }
 }

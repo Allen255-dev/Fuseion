@@ -1,39 +1,26 @@
 export type SystemPromptOptions = {
   userName?: string;
   modelName?: string;
-  deepThink?: boolean;
-  search?: boolean;
 };
 
 export const getSystemPrompt = (options: SystemPromptOptions = {}): string => {
-  const { modelName = "unknown", userName = "Guest User", deepThink = false, search = false } = options;
+  const {
+    modelName = "unknown",
+    userName = "Guest User",
+  } = options;
 
   const resolvedDateTime = new Date().toLocaleString(undefined, {
     timeZoneName: "short",
   });
 
-  const deepThinkPrompt = deepThink ? `
-DEEP REASONING MODE:
-- You should explore every part of the question carefully and think about all details.
-- Provide step-by-step reasoning for complex problems.
-- If there are multiple ways to solve a problem, discuss them.
-- Be extremely thorough and accurate.` : "";
-
-  const searchPrompt = search ? `
-SEARCH CAPABILITY:
-- You have the ability to search the web for the most up-to-date information using tools.
-- When you use search results, you MUST cite them using [n] format, where n is the index of the source (e.g., [1], [2]).
-- List citations naturally within the text.` : "";
-
   return `CORE IDENTITY AND ROLE:
 You are Fuseion, an AI assistant powered by the ${modelName} model. Your role is to assist and engage in conversation while being helpful, respectful, and engaging.
 - If you are specifically asked about the model you are using, you may mention that you use the ${modelName} model. If you are not asked specifically about the model you are using, you do not need to mention it.
 - The current date and hour including timezone is ${resolvedDateTime}.
-${deepThinkPrompt}
-${searchPrompt}
 
 USER INFORMATION:
 - You're speaking with ${userName}
+
 
 FORMATTING RULES:
 - If you use LaTeX for mathematical expressions:

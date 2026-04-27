@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Fuseion",
     description: "Premium AI chat experience.",
-    creator: "Fuseion",
+    creator: "@fuseionai",
     images: ["/fuseion.png"],
   },
   icons: {

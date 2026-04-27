@@ -7,7 +7,6 @@ export const createUser = mutation({
     name: v.string(),
     email: v.string(),
     picture: v.optional(v.string()),
-    tier: v.union(v.literal("free"), v.literal("pro")),
     preferences: v.optional(
       v.object({
         name: v.optional(v.string()),
@@ -30,6 +29,7 @@ export const createUser = mutation({
     const now = Date.now();
     const user = await ctx.db.insert("users", {
       ...args,
+      tier: "free",
       createdAt: now,
       updatedAt: now,
     });
@@ -44,7 +44,6 @@ export const upSertUser = mutation({
     name: v.string(),
     email: v.string(),
     picture: v.optional(v.string()),
-    tier: v.union(v.literal("free"), v.literal("pro")),
     preferences: v.optional(
       v.object({
         name: v.optional(v.string()),
@@ -62,6 +61,7 @@ export const upSertUser = mutation({
 
     if (existing) {
       await ctx.db.patch(existing._id, {
+
         name: args.name,
         email: args.email,
         picture: args.picture,
@@ -73,6 +73,7 @@ export const upSertUser = mutation({
     const now = Date.now();
     const user = await ctx.db.insert("users", {
       ...args,
+      tier: "free",
       createdAt: now,
       updatedAt: now,
     });
@@ -107,7 +108,18 @@ export const getUserCredits = query({
       .query("users")
       .withIndex("by_external_id", (q) => q.eq("userId", args.userId))
       .unique();
-
     return existing?.credits ?? 0;
+  },
+});
+
+export const getUser = query({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_external_id", (q) => q.eq("userId", args.userId))
+      .unique();
   },
 });

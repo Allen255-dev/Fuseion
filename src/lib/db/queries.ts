@@ -14,7 +14,7 @@ export const queries = {
       // For now, I'll call a hypothetical or existing query
       return await convexServer.query(api.messages.getMessageCountByUserId, {
         userId,
-        differenceInHours: 24
+        differenceInHours: 24,
       });
     } catch (error) {
       logger.error(
@@ -29,7 +29,7 @@ export const queries = {
     try {
       return await convexServer.query(api.messages.getMessageCountByUserId, {
         userId,
-        differenceInHours: 720
+        differenceInHours: 720,
       });
     } catch (error) {
       logger.error(
@@ -51,10 +51,13 @@ export const queries = {
 
   getThreadByUserIdAndThreadId: async (userId: string, threadId: string) => {
     try {
-      const data = await convexServer.query(api.threads.getThreadByUserIdAndThreadId, {
-        userId,
-        threadId
-      });
+      const data = await convexServer.query(
+        api.threads.getThreadByUserIdAndThreadId,
+        {
+          userId,
+          threadId,
+        },
+      );
 
       if (!data) return null;
 
@@ -75,7 +78,9 @@ export const queries = {
 
   listMessagesByThreadId: async (threadId: string) => {
     try {
-      const messages = await convexServer.query(api.messages.listMessages, { threadId });
+      const messages = await convexServer.query(api.messages.listMessages, {
+        threadId,
+      });
 
       return messages.map((m: any) => ({
         ...m,
@@ -98,7 +103,10 @@ export const queries = {
 
   listStreamsByThreadId: async (threadId: string) => {
     try {
-      const streams = await convexServer.query(api.streams.listStreamsByThreadId, { threadId });
+      const streams = await convexServer.query(
+        api.streams.listStreamsByThreadId,
+        { threadId },
+      );
       return streams.map((s: any) => ({
         ...s,
         external_id: s.id,
@@ -110,6 +118,14 @@ export const queries = {
         getErrorMessage(error),
       );
       return [];
+    }
+  },
+  getUser: async (userId: string) => {
+    try {
+      return await convexServer.query(api.users.getUser, { userId });
+    } catch (error) {
+      logger.error("Error fetching user:", getErrorMessage(error));
+      return null;
     }
   },
 };

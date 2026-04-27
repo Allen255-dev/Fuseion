@@ -17,11 +17,12 @@ export async function generateTitleFromUserMessage({
     const conversation = messages
       .filter((m: any) => m.role === "user" || m.role === "assistant")
       .map((m: any) => {
-        const content = typeof m.content === "string" 
-          ? m.content 
-          : Array.isArray(m.content) 
-            ? m.content.map((p: any) => p.text || "").join("") 
-            : JSON.stringify(m.content);
+        const content =
+          typeof m.content === "string"
+            ? m.content
+            : Array.isArray(m.content)
+              ? m.content.map((p: any) => p.text || "").join("")
+              : JSON.stringify(m.content);
         return `${m.role.toUpperCase()}: ${content}`;
       })
       .join("\n");
@@ -29,9 +30,11 @@ export async function generateTitleFromUserMessage({
     const {
       object: { title },
     } = await generateObject({
-      model: google("gemini-1.5-flash"),
+      model: google("gemini-3-flash-preview"),
       schema: z.object({
-        title: z.string().describe("A short, descriptive title for the conversation"),
+        title: z
+          .string()
+          .describe("A short, descriptive title for the conversation"),
       }),
       system: `\n
     - You are a helpful assistant that generates meaningful titles for AI chat conversations.

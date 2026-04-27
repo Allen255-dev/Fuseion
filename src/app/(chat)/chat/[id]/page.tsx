@@ -28,7 +28,7 @@ export default async function Page({
     const rawMessages = await queries.listMessagesByThreadId(id);
     initialMessages = rawMessages.map((m: any) => {
       let parts = m.parts;
-      if (typeof parts === 'string') {
+      if (typeof parts === "string") {
         try {
           const parsed = JSON.parse(parts);
           if (Array.isArray(parsed)) {
@@ -39,11 +39,21 @@ export default async function Page({
         }
       }
 
+      let metadataObj = m.metadata;
+      if (typeof metadataObj === "string") {
+        try {
+          metadataObj = JSON.parse(metadataObj);
+        } catch {
+          metadataObj = {};
+        }
+      }
+
       return {
         id: m.external_id,
         role: m.role,
         parts: parts,
-        metadata: m.metadata,
+        metadata: metadataObj,
+        toolInvocations: metadataObj?.toolInvocations,
       };
     });
 
@@ -62,10 +72,13 @@ export default async function Page({
   let selectedModel: Model;
   try {
     const parsedModel = model ? JSON.parse(model.value) : null;
-    selectedModel = parsedModel ? (models.find((m) => m.id === parsedModel.id) ?? getDefaultModel()) : getDefaultModel();
+    selectedModel = parsedModel
+      ? (models.find((m) => m.id === parsedModel.id) ?? getDefaultModel())
+      : getDefaultModel();
   } catch {
     selectedModel = getDefaultModel();
   }
+
 
   return (
     <Chat

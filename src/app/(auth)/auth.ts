@@ -32,7 +32,6 @@ export const {
     Google({
       profile(profile: GoogleProfile) {
         return {
-          tier: "free",
           name: profile.name,
           email: profile.email,
           picture: profile.picture,
@@ -50,7 +49,6 @@ export const {
         try {
           const userData = {
             userId: typedUser.userId,
-            tier: typedUser.tier as "free" | "pro",
             name: typedUser.name || "",
             email: typedUser.email || "",
             picture: typedUser.picture,
@@ -59,8 +57,12 @@ export const {
 
           // Use Convex upsert mutation
           await convexServer.mutation(api.users.upSertUser, userData);
+
         } catch (error) {
-          console.error("Convex user sync failed (continuing session anyway):", error);
+          console.error(
+            "Convex user sync failed (continuing session anyway):",
+            error,
+          );
           return true;
         }
       }

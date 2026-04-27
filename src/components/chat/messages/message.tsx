@@ -8,13 +8,18 @@ import { ChatMessage } from "~/types";
 import { memo, useState } from "react";
 import { MessageEditor } from "./editor";
 import { MessageActions as MessageActionsComponent } from "./actions";
-import { Message, MessageContent, MessageActions } from "../../ai-elements/message";
+import {
+  Message,
+  MessageContent,
+  MessageActions,
+} from "../../ai-elements/message";
 import { MessageResponse } from "../../ai-elements/response";
 import { Reasoning } from "../../ai-elements/reasoning";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { PreviewAttachment } from './attachment-preview';
+import { PreviewAttachment } from "./attachment-preview";
 import { CitationLinks, extractCitations } from "../citations";
+import { Lightbulb, Search } from "lucide-react";
 
 type FileUIPart = any; // Simplify for now to avoid SDK version conflicts
 
@@ -33,7 +38,22 @@ const PurePreviewMessage = ({
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
 
-  const messageFiles = (message.parts ?? []).filter((part): part is any => (part as any).type === 'file' || (part as any).type === 'image');
+  const messageFiles = (message.parts ?? []).filter(
+    (part): part is any =>
+      (part as any).type === "file" || (part as any).type === "image",
+  );
+
+  let allWebPages: any[] = [];
+  if (message.toolInvocations) {
+    message.toolInvocations.forEach((result: any) => {
+      if (
+        result.toolName === "internetSearch" &&
+        Array.isArray(result.result)
+      ) {
+        allWebPages = [...allWebPages, ...result.result];
+      }
+    });
+  }
 
   return (
     <Message from={message.role}>
@@ -50,11 +70,41 @@ const PurePreviewMessage = ({
                   type: "file",
                   filename: filePart.name,
                   url: filePart.url,
-                  mediaType: filePart.mimeType
+                  mediaType: filePart.mimeType,
                 }}
               />
             ))}
           </div>
+        )}
+
+        {allWebPages.length > 0 && (
+          <Reasoning
+            title={
+              <div className="flex items-center gap-1.5 text-muted-foreground font-semibold">
+                <Search className="size-3.5 text-blue-400" /> Read{" "}
+                {allWebPages.length} web pages
+              </div>
+            }
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+              {allWebPages.map((page: any) => (
+                <a
+                  key={page.id}
+                  href={page.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col p-2.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                >
+                  <span className="text-xs font-semibold truncate text-blue-400 mb-0.5">
+                    {page.title}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground truncate">
+                    {page.url}
+                  </span>
+                </a>
+              ))}
+            </div>
+          </Reasoning>
         )}
 
         {Array.isArray(message.parts) &&
@@ -63,47 +113,54 @@ const PurePreviewMessage = ({
             .map((part, index) => {
               const { type } = part;
               const key = `message-${message.id}-part-${index}`;
+              const partText = (part as any).text || (part as any).reasoning || "";
 
-              if (type === "reasoning" && part.text?.trim().length > 0) {
+              if (type === "reasoning" && typeof partText === "string" && partText.trim().length > 0) {
                 return (
                   <Reasoning
                     key={key}
                     isLoading={isLoading}
+                    title={
+                      <div className="flex items-center gap-1.5 text-muted-foreground font-semibold">
+                        <Lightbulb
+                          className={cn(
+                            "size-3.5 text-yellow-500",
+                            isLoading && "animate-pulse",
+                          )}
+                        />
+                        {isLoading ? "Thinking Process" : "Thought Process"}
+                      </div>
+                    }
                   >
-                    <MessageResponse>{part.text}</MessageResponse>
+                    <MessageResponse>{partText}</MessageResponse>
                   </Reasoning>
                 );
               }
 
               if (type === "text") {
-                if (part.text.trim() === "") {
+                if (typeof partText !== "string" || partText.trim() === "") {
                   return null;
                 }
 
                 if (mode === "view") {
-                  if (message.role === 'user') {
+                  if (message.role === "user") {
                     return (
                       <div
                         key={key}
                         className="bg-primary text-primary-foreground px-4 py-2.5 rounded-2xl rounded-tr-none text-sm leading-relaxed whitespace-pre-wrap break-words"
                       >
-                        {part.text}
+                        {partText}
                       </div>
                     );
                   }
                   return (
-                    <MessageResponse key={key}>
-                      {part.text}
-                    </MessageResponse>
+                    <MessageResponse key={key}>{partText}</MessageResponse>
                   );
                 }
 
                 if (mode === "edit") {
                   return (
-                    <div
-                      key={key}
-                      className="flex flex-row gap-2 items-start"
-                    >
+                    <div key={key} className="flex flex-row gap-2 items-start">
                       <MessageEditor
                         key={message.id}
                         message={message}
@@ -120,10 +177,17 @@ const PurePreviewMessage = ({
             })}
 
         {message.role === "assistant" && (
-          <CitationLinks citations={extractCitations(
-            message.parts?.filter(p => p.type === 'text').map(p => p.text).join('\n') || '',
-            message.toolInvocations
-          ).citations} />
+          <CitationLinks
+            citations={
+              extractCitations(
+                message.parts
+                  ?.filter((p) => p.type === "text")
+                  .map((p) => p.text)
+                  .join("\n") || "",
+                message.toolInvocations,
+              ).citations
+            }
+          />
         )}
 
         <MessageActions>

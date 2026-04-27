@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server";
+
 export type ErrorType =
   | "bad_request"
   | "unauthorized"
@@ -9,6 +11,8 @@ export type ErrorType =
   | "offline"
   | "unsupported_provider"
   | "internal_server_error"
+  | "pro_required"
+  | "limit_reached"
   | "aborted";
 
 export type Surface =
@@ -50,13 +54,19 @@ export class ChatSDKError extends Error {
   constructor(errorCode: ErrorCode, cause?: string) {
     super();
 
-    const safeErrorCode = typeof errorCode === "string" ? errorCode : "internal_server_error:api";
+    const safeErrorCode =
+      typeof errorCode === "string" ? errorCode : "internal_server_error:api";
     const [type, surface] = safeErrorCode.split(":");
 
     this.type = (type || "internal_server_error") as ErrorType;
     this.cause = cause;
     this.surface = (surface || "api") as Surface;
-    this.message = getMessageByErrorCode(safeErrorCode as ErrorCode);
+    
+    // For custom errors like pro blocks, use the cause as the main message
+    // For protocol/provider errors like rate limits, use the friendly message (the cause will be shown separately)
+    const isCustomError = safeErrorCode.includes("pro_required") || safeErrorCode.includes("limit_reached");
+    this.message = (isCustomError && cause) ? cause : getMessageByErrorCode(safeErrorCode as ErrorCode);
+    
     this.statusCode = getStatusCodeByType(this.type);
   }
 
@@ -73,13 +83,13 @@ export class ChatSDKError extends Error {
         cause,
       });
 
-      return Response.json(
+      return NextResponse.json(
         { code: "", message: "Something went wrong. Please try again later." },
         { status: statusCode },
       );
     }
 
-    return Response.json({ code, message, cause }, { status: statusCode });
+    return NextResponse.json({ code, message, cause }, { status: statusCode });
   }
 }
 
@@ -100,7 +110,7 @@ export function getMessageByErrorCode(errorCode: ErrorCode): string {
     case "internal_server_error:api":
       return "An error occurred while processing your request. Please try again later.";
     case "rate_limit:api":
-      return "You have exceeded your maximum number of requests. Please try again in a few seconds.";
+      return "The AI provider's rate limit or quota has been reached. Please try again in a few moments, or switch to a different model.";
 
     case "unauthorized:auth":
       return "You need to sign in to send messages.";
@@ -137,6 +147,11 @@ export function getMessageByErrorCode(errorCode: ErrorCode): string {
       return "You need to sign in to view this document. Please sign in and try again.";
     case "bad_request:document":
       return "The request to create or update the document was invalid. Please check your input and try again.";
+
+    case "pro_required:api":
+      return "This model requires a Pro subscription. Please upgrade to continue.";
+    case "limit_reached:api":
+      return "You have reached your tier limit. Please upgrade to continue.";
 
     default:
       return "Something went wrong. Please try again later.";

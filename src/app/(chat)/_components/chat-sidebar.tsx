@@ -9,6 +9,7 @@ import {
   SidebarContent,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuAction,
   SidebarGroupLabel,
   SidebarGroupContent,
 } from "~/components/ui/sidebar";
@@ -35,6 +36,11 @@ import {
   HelpCircle,
   MessagesSquare,
   Bug,
+  MoreHorizontal,
+  Share,
+  Pencil,
+  Copy,
+  Search,
 } from "lucide-react";
 import {
   ContextMenu,
@@ -62,7 +68,15 @@ import {
 } from "~/components/ui/alert-dialog";
 import { signOut } from "next-auth/react";
 import { useThreads } from "~/hooks/use-threads";
-
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "~/components/ui/dialog";
 
 export function ChatSidebar({ session }: { session: Session | null }) {
   const router = useRouter();
@@ -74,13 +88,21 @@ export function ChatSidebar({ session }: { session: Session | null }) {
   const [pendingDelete, setPendingDelete] = useState<ThreadInterface | null>(
     null,
   );
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [pendingRename, setPendingRename] = useState<ThreadInterface | null>(
+    null,
+  );
+  const [newName, setNewName] = useState("");
+
+  const [shareOpen, setShareOpen] = useState(false);
+  const [pendingShare, setPendingShare] = useState<ThreadInterface | null>(
+    null,
+  );
+
   const deleteShiftRef = useRef(false);
 
-  const {
-    results: threads,
-    status,
-    loadMore,
-  } = useThreads(userId, "");
+  const [searchQuery, setSearchQuery] = useState("");
+  const { results: threads, status, loadMore } = useThreads(userId, searchQuery);
 
   const mutateThread = async (args: any) => {
     try {
@@ -156,7 +178,9 @@ export function ChatSidebar({ session }: { session: Session | null }) {
     return (
       <SidebarGroup className="px-3 py-0">
         <SidebarGroupLabel className="px-2 mb-1">
-          <span className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">{label}</span>
+          <span className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">
+            {label}
+          </span>
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
@@ -164,12 +188,19 @@ export function ChatSidebar({ session }: { session: Session | null }) {
               <SidebarMenuItem key={`${thread.id}-${index}`}>
                 <ContextMenu>
                   <ContextMenuTrigger asChild>
-                    <SidebarMenuButton asChild size="default" className="h-9 transition-all duration-200 hover:bg-white/5 data-[active=true]:bg-white/10 data-[active=true]:text-primary-foreground group-data-[collapsible=icon]:!p-2">
+                    <SidebarMenuButton
+                      asChild
+                      size="default"
+                      className="h-9 transition-all duration-200 hover:bg-white/5 data-[active=true]:bg-white/10 data-[active=true]:text-primary-foreground group-data-[collapsible=icon]:!p-2"
+                    >
                       <Link
                         scroll={false}
                         href={`/chat/${thread.id}`}
-                        className={`w-full items-center justify-between ${pathname === `/chat/${thread.id}` ? "font-medium text-foreground" : "text-muted-foreground"
-                          }`}
+                        className={`w-full items-center justify-between ${
+                          pathname === `/chat/${thread.id}`
+                            ? "font-medium text-foreground"
+                            : "text-muted-foreground"
+                        }`}
                         data-discover="true"
                       >
                         <span className="truncate">{thread.title}</span>
@@ -207,30 +238,24 @@ export function ChatSidebar({ session }: { session: Session | null }) {
                     <ContextMenuItem
                       className="focus:bg-white/10 focus:text-white cursor-pointer"
                       onSelect={() => {
-                        startRegeneration(async () => {
-                          void mutateThread({
-                            id: thread.id,
-                            status: "streaming",
-                          });
-                          const title = await regenerateThreadTitle({
-                            userId,
-                            threadId: thread.id,
-                          });
-                          void mutateThread({
-                            title,
-                            id: thread.id,
-                            status: "done",
-                          });
-                        });
+                        setPendingRename(thread);
+                        setNewName(thread.title);
+                        setRenameOpen(true);
                       }}
                       disabled={isPending || isRegenerating}
                     >
-                      {isRegenerating ? (
-                        <Loader2 className="size-4 mr-2 animate-spin" />
-                      ) : (
-                        <Sparkles className="size-4 mr-2" />
-                      )}
+                      <Pencil className="size-4 mr-2" />
                       Rename
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      className="focus:bg-white/10 focus:text-white cursor-pointer"
+                      onSelect={() => {
+                        setPendingShare(thread);
+                        setShareOpen(true);
+                      }}
+                    >
+                      <Share className="size-4 mr-2" />
+                      Share
                     </ContextMenuItem>
                     <ContextMenuItem
                       className="text-red-400 focus:text-red-400 focus:bg-red-900/20 cursor-pointer"
@@ -262,6 +287,95 @@ export function ChatSidebar({ session }: { session: Session | null }) {
                     </ContextMenuItem>
                   </ContextMenuContent>
                 </ContextMenu>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuAction showOnHover>
+                      <MoreHorizontal />
+                      <span className="sr-only">More</span>
+                    </SidebarMenuAction>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    className="w-48 bg-card/95 backdrop-blur-xl border-white/10"
+                    side="bottom"
+                    align="end"
+                  >
+                    <DropdownMenuItem
+                      className="focus:bg-white/10 focus:text-white cursor-pointer"
+                      onSelect={() => {
+                        startTransition(() => {
+                          void mutateThread({
+                            id: thread.id,
+                            pinned: !thread.pinned,
+                          });
+                        });
+                      }}
+                      disabled={isPending || isRegenerating}
+                    >
+                      {thread.pinned ? (
+                        <>
+                          <PinOff className="size-4 mr-2" />
+                          Unpin Thread
+                        </>
+                      ) : (
+                        <>
+                          <Pin className="size-4 mr-2" />
+                          Pin Thread
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="focus:bg-white/10 focus:text-white cursor-pointer"
+                      onSelect={() => {
+                        setPendingRename(thread);
+                        setNewName(thread.title);
+                        setRenameOpen(true);
+                      }}
+                      disabled={isPending || isRegenerating}
+                    >
+                      <Pencil className="size-4 mr-2" />
+                      Rename
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="focus:bg-white/10 focus:text-white cursor-pointer"
+                      onSelect={() => {
+                        setPendingShare(thread);
+                        setShareOpen(true);
+                      }}
+                    >
+                      <Share className="size-4 mr-2" />
+                      Share
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-white/10" />
+                    <DropdownMenuItem
+                      className="text-red-400 focus:text-red-400 focus:bg-red-900/20 cursor-pointer"
+                      onPointerDown={(e) => {
+                        deleteShiftRef.current = e.shiftKey;
+                      }}
+                      onSelect={() => {
+                        const shift = deleteShiftRef.current;
+                        deleteShiftRef.current = false;
+                        if (shift) {
+                          startTransition(() => {
+                            if (pathname === `/chat/${thread.id}`) {
+                              router.push("/chat");
+                            }
+                            void mutateThread({
+                              id: thread.id,
+                              status: "deleted",
+                            });
+                          });
+                          return;
+                        }
+                        setPendingDelete(thread);
+                        setConfirmOpen(true);
+                      }}
+                      disabled={isPending || isRegenerating}
+                    >
+                      <Trash className="size-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
@@ -271,7 +385,11 @@ export function ChatSidebar({ session }: { session: Session | null }) {
   }
 
   return (
-    <Sidebar collapsible="offcanvas" variant="inset" className="bg-sidebar border-r border-white/5">
+    <Sidebar
+      collapsible="offcanvas"
+      variant="inset"
+      className="bg-sidebar border-r border-white/5"
+    >
       <SidebarHeader className="flex flex-col gap-4 p-4 !pt-safe min-h-[72px]">
         <div className="flex flex-col gap-3 mt-14">
           <Button
@@ -283,8 +401,20 @@ export function ChatSidebar({ session }: { session: Session | null }) {
             className="w-full justify-center gap-2.5 h-11 rounded-full bg-zinc-800/40 hover:bg-zinc-800/60 border border-white/5 text-zinc-300 hover:text-white transition-all duration-200 shadow-sm"
           >
             <PlusCircle className="size-4.5" />
-            <span className="text-sm font-semibold tracking-tight">New chat</span>
+            <span className="text-sm font-semibold tracking-tight">
+              New chat
+            </span>
           </Button>
+
+          <div className="relative group px-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/50 group-focus-within:text-blue-400 transition-colors" />
+            <Input
+              placeholder="Search conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-9 w-full bg-zinc-900/40 border-white/5 rounded-full pl-10 text-xs placeholder:text-muted-foreground/40 focus:bg-zinc-900/60 focus:border-blue-500/20 transition-all shadow-inner"
+            />
+          </div>
         </div>
       </SidebarHeader>
 
@@ -334,14 +464,21 @@ export function ChatSidebar({ session }: { session: Session | null }) {
                 className="bg-zinc-900 border border-white/5 rounded-full data-[state=open]:bg-zinc-800 data-[state=open]:text-sidebar-accent-foreground hover:bg-zinc-800 transition-all shadow-md py-6 px-4"
               >
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={session.user.picture} alt={session.user.name || ""} />
+                  <AvatarImage
+                    src={session.user.picture}
+                    alt={session.user.name || ""}
+                  />
                   <AvatarFallback className="rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white">
                     {session.user.name?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{session.user.name}</span>
-                  <span className="truncate text-xs text-muted-foreground">{session.user.email}</span>
+                  <span className="truncate font-semibold">
+                    {session.user.name}
+                  </span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {session.user.email}
+                  </span>
                 </div>
                 <Settings2 className="ml-auto size-4 text-muted-foreground" />
               </SidebarMenuButton>
@@ -352,19 +489,31 @@ export function ChatSidebar({ session }: { session: Session | null }) {
               align="end"
               sideOffset={4}
             >
-              <DropdownMenuItem className="cursor-pointer focus:bg-white/10" onClick={() => router.push('/settings')}>
+              <DropdownMenuItem
+                className="cursor-pointer focus:bg-white/10"
+                onClick={() => router.push("/settings")}
+              >
                 <Settings2 className="mr-2 size-4" />
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer focus:bg-white/10" onClick={() => router.push('/help')}>
+              <DropdownMenuItem
+                className="cursor-pointer focus:bg-white/10"
+                onClick={() => router.push("/help")}
+              >
                 <HelpCircle className="mr-2 size-4" />
                 Help Center
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer focus:bg-white/10" onClick={() => router.push('/community')}>
+              <DropdownMenuItem
+                className="cursor-pointer focus:bg-white/10"
+                onClick={() => router.push("/community")}
+              >
                 <MessagesSquare className="mr-2 size-4" />
                 Community
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer focus:bg-white/10" onClick={() => router.push('/feedback')}>
+              <DropdownMenuItem
+                className="cursor-pointer focus:bg-white/10"
+                onClick={() => router.push("/feedback")}
+              >
                 <Bug className="mr-2 size-4" />
                 Feedback
               </DropdownMenuItem>
@@ -405,7 +554,12 @@ export function ChatSidebar({ session }: { session: Session | null }) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPending} className="bg-transparent hover:bg-white/10 border-white/10">Cancel</AlertDialogCancel>
+            <AlertDialogCancel
+              disabled={isPending}
+              className="bg-transparent hover:bg-white/10 border-white/10"
+            >
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700 text-white"
               onClick={() => {
@@ -429,6 +583,100 @@ export function ChatSidebar({ session }: { session: Session | null }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent className="bg-card/95 backdrop-blur-xl border-white/10 sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Rename Chat</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="col-span-3 bg-white/5 border-white/10"
+              placeholder="Enter new chat name..."
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (!pendingRename || !newName.trim()) return;
+                  startTransition(() => {
+                    void mutateThread({
+                      id: pendingRename.id,
+                      title: newName.trim(),
+                    });
+                    setRenameOpen(false);
+                    setPendingRename(null);
+                  });
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="ghost" disabled={isPending}>
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => {
+                if (!pendingRename || !newName.trim()) return;
+                startTransition(() => {
+                  void mutateThread({
+                    id: pendingRename.id,
+                    title: newName.trim(),
+                  });
+                  setRenameOpen(false);
+                  setPendingRename(null);
+                });
+              }}
+              disabled={isPending || !newName.trim()}
+            >
+              {isPending ? (
+                <Loader2 className="size-4 animate-spin mr-2" />
+              ) : null}
+              Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="bg-card/95 backdrop-blur-xl border-white/10 sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Share Chat</DialogTitle>
+            <AlertDialogDescription>
+              Anyone with this link will be able to view this chat.
+            </AlertDialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 py-4">
+            <Input
+              readOnly
+              value={
+                pendingShare
+                  ? `${window.location.origin}/chat/${pendingShare.id}`
+                  : ""
+              }
+              className="bg-white/5 border-white/10 text-muted-foreground"
+            />
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+              onClick={() => {
+                if (!pendingShare) return;
+                navigator.clipboard.writeText(
+                  `${window.location.origin}/chat/${pendingShare.id}`,
+                );
+                toast.success("Link copied to clipboard!");
+                setShareOpen(false);
+                setPendingShare(null);
+              }}
+            >
+              <Copy className="size-4 mr-2" />
+              Copy Link
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Sidebar>
   );
 }
