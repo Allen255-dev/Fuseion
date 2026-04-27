@@ -68,7 +68,7 @@
     "rehype-starry-night": "^2.2.0",
     "remark-breaks": "^4.0.0",
     "remark-parse": "^11.0.0",
-    "resumable-stream": "^2.2.10",
+    "resumable-stream": "^2.2.12",
     "shiki": "^3.21.0",
     "sonner": "^2.0.7",
     "streamdown": "^2.1.0",
