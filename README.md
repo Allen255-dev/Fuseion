@@ -22,7 +22,7 @@ https://github.com/user-attachments/assets/a74512ba-24de-4a9f-919b-4bc120fba4f2
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/prudentbird/fuseion.git
+git clone https://github.com/your-username/fuseion.git
 cd fuseion
 ```
 
@@ -75,3 +75,4 @@ This project is proprietary software. All rights reserved. See the [LICENSE](LIC
 # Fuseion-
 # Fuseion
 # Fuseion
+
