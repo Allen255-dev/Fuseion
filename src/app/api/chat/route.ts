@@ -192,7 +192,6 @@ export async function POST(req: Request) {
       model,
       system: systemPrompt,
       messages: normalizedMessages,
-      maxSteps: 1, // Reduced steps as tools are removed
       maxRetries: 2,
 
       onFinish: async (completion: any) => {
