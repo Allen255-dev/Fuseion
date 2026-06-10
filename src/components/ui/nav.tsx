@@ -20,7 +20,34 @@ const Nav = () => {
   const router = useRouter();
   const { state, isMobile } = useSidebar();
 
-  if (isMobile) return null;
+  if (isMobile) {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-14 glass border-b border-white/5">
+        <Link href="/" className="flex items-center gap-2 group">
+          <div className="size-8 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center shadow-lg overflow-hidden">
+            <img src="/fuseion.png" alt="Fuseion" className="size-full object-cover" />
+          </div>
+          <span className="text-lg font-bold font-heading text-white tracking-tight">Fuseion</span>
+        </Link>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              router.push("/chat");
+              router.refresh();
+            }}
+            className="size-9 rounded-full text-zinc-400 hover:text-white"
+          >
+            <Plus className="size-5" />
+          </Button>
+          <SidebarTrigger className="size-9 rounded-full text-zinc-400 hover:text-white">
+            <PanelLeft className="size-5" />
+          </SidebarTrigger>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

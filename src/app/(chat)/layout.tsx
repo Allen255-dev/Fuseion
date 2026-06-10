@@ -46,7 +46,8 @@ export default async function ChatLayout({
         <Suspense fallback={<SidebarSkeleton />}>
           <AppSidebar />
         </Suspense>
-        <SidebarInset>{children}</SidebarInset>
+        <SidebarInset className="pt-14 md:pt-0">{children}</SidebarInset>
+
       </SidebarProvider>
     </DataStreamProvider>
   );

@@ -1,9 +1,11 @@
 import { queries } from "./queries";
 import { mutations } from "./mutations";
 import { convexServer, api } from "../convex-server";
+import { redis } from "../redis";
 
 export * from "./queries";
 export * from "./mutations";
+
 
 // Compatibility layer for legacy Prisma names during migration
 export const saveMessage = async (args: {
@@ -25,8 +27,31 @@ export const saveMessage = async (args: {
 };
 
 export const getThread = async (userId: string, externalId: string) => {
-  return await queries.getThreadByUserIdAndThreadId(userId, externalId);
+
+  const cacheKey = `thread:${userId}:${externalId}`;
+  
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch (err) {
+    console.error("Redis get error:", err);
+  }
+
+  const thread = await queries.getThreadByUserIdAndThreadId(userId, externalId);
+  
+  if (thread) {
+    try {
+      await redis.set(cacheKey, JSON.stringify(thread), {
+        EX: 3600, // Cache for 1 hour
+      });
+    } catch (err) {
+      console.error("Redis set error:", err);
+    }
+  }
+  
+  return thread;
 };
+
 
 export const createThread = async (args: {
   externalId: string;

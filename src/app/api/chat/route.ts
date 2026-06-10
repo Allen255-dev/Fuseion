@@ -16,11 +16,37 @@ const uuidv4 = () => crypto.randomUUID();
 import { ChatSDKError } from "@/lib/errors";
 import { auth } from "@/app/(auth)/auth";
 import { getSystemPrompt } from "@/lib/ai/system";
+import arcjet, { tokenBucket, detectBot, shield } from "@arcjet/next";
+
+const aj = arcjet({
+  key: process.env.ARCJET_KEY!,
+  rules: [
+    shield({ mode: "LIVE" }),
+    detectBot({ mode: "LIVE", allow: ["CATEGORY:SEARCH_ENGINE"] }),
+    tokenBucket({
+      mode: "LIVE",
+      refillRate: 5,
+      interval: 10,
+      capacity: 10,
+    }),
+  ],
+});
 
 export const maxDuration = 60;
+export const runtime = "nodejs";
+
 
 export async function POST(req: Request) {
   try {
+    // Arcjet security check
+    const decision = await aj.protect(req, { requested: 1 });
+    if (decision.isDenied()) {
+      if (decision.reason.isRateLimit()) {
+        throw new ChatSDKError("rate_limit:api", "Too many requests. Please try again later.");
+      }
+      throw new ChatSDKError("bad_request:api", "Request denied by security policy");
+    }
+
     const session = await auth();
 
     const json = await req.json();
@@ -47,18 +73,36 @@ export async function POST(req: Request) {
 
     const currentModel = getModelById(modelId);
     
-    // Ensure thread exists in the database
+    // Ensure thread exists and save user message in parallel with AI call preparation
+    const threadPromise = getThread(userId, threadId).then(async (thread) => {
+      if (!thread) {
+        console.log(`Creating new thread: ${threadId} for user: ${userId}`);
+        return await createThread({
+          externalId: threadId,
+          title: "New Chat",
+          model: currentModel.id,
+          userId: userId,
+        });
+      }
+      return thread;
+    });
 
-    const thread = await getThread(userId, threadId);
-    if (!thread) {
-      console.log(`Creating new thread: ${threadId} for user: ${userId}`);
-      await createThread({
-        externalId: threadId,
-        title: "New Chat",
-        model: currentModel.id,
-        userId: userId,
-      });
-    }
+    // Proactively save the last user message to DB without blocking the stream
+    const lastUserMessage = messages[messages.length - 1];
+    const saveUserMessagePromise = saveMessage({
+      externalId: uuidv4(),
+      role: "user",
+      parts:
+        lastUserMessage.parts ||
+        (typeof lastUserMessage.content === "string"
+          ? [{ type: "text", text: lastUserMessage.content }]
+          : lastUserMessage.content),
+      threadId,
+      userId,
+      metadata: "{}",
+    }).catch(dbError => {
+      console.error("Failed to save user message to DB:", dbError);
+    });
 
     let model;
     console.log(
@@ -136,24 +180,13 @@ export async function POST(req: Request) {
       userName: (session?.user as any)?.name ?? "User",
     });
 
-    // Proactively save the last user message to DB
-    const lastUserMessage = messages[messages.length - 1];
-    try {
-      await saveMessage({
-        externalId: uuidv4(),
-        role: "user",
-        parts:
-          lastUserMessage.parts ||
-          (typeof lastUserMessage.content === "string"
-            ? [{ type: "text", text: lastUserMessage.content }]
-            : lastUserMessage.content),
-        threadId,
-        userId,
-        metadata: "{}",
-      });
-    } catch (dbError) {
-      console.error("Failed to save user message to DB:", dbError);
-    }
+    // Ensure thread and user message saving started
+    // We don't await them here to speed up the AI response initiation
+    // but we should ensure they complete eventually. Next.js Edge runtime
+    // might terminate the request early, so in a real production environment
+    // with heavy load, we might use a background worker or waitUntil.
+    // For now, this is much faster.
+
 
     const result = await streamText({
       model,

@@ -39,7 +39,7 @@ export const ErrorMessage = ({ error, cause, onRetry }: { error: string; cause?:
                 </Button>
                 <a
                   className="text-xs font-semibold text-red-300 hover:text-red-100 underline underline-offset-4"
-                  href="mailto:amegwu255@gmail.com"
+                  href="mailto:support@example.com"
                 >
                   Contact Support
                 </a>
