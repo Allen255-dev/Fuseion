@@ -24,7 +24,7 @@
     "@ai-sdk/react": "^3.0.44",
     "@arcjet/next": "1.0.0-beta.17",
     "@convex-dev/eslint-plugin": "1.1.1",
-    "@convex-dev/persistent-text-streaming": "^0.3.0",
+    "@convex-dev/persistent-text-streaming": "^0.3.2",
     "@google/generative-ai": "^0.24.1",
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",
